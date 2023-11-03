@@ -1,0 +1,88 @@
+""" Night (all lights on):
+    Initialization: looking up at the lights
+    Lens: original w/ IR filter
+"""
+PURPLE = [(7, 20, 3, 17, -17, -3)]
+GREEN = [(31, 43, -36, -14, 10, 28)]
+# Camera register initialization
+def init_sensor_target(isColored=True, framesize=sensor.HQVGA, windowsize=None) -> None:
+    sensor.reset()                        # Initialize the camera sensor.
+    if isColored:
+        sensor.set_pixformat(sensor.RGB565) # Set pixel format to RGB565 (or GRAYSCALE)
+    else:
+        sensor.set_pixformat(sensor.GRAYSCALE)
+    sensor.set_framesize(framesize)
+    if windowsize is not None:            # Set windowing to reduce the resolution of the image
+        sensor.set_windowing(windowsize)
+    sensor.skip_frames(time=1000)         # Let new settings take affect.
+    sensor.set_auto_whitebal(False)
+    sensor.set_auto_exposure(False)
+    sensor.__write_reg(0xfe, 0b00000000) # change to registers at page 0
+    sensor.__write_reg(0x80, 0b10111100) # enable gamma, CC, edge enhancer, interpolation, de-noise
+    sensor.__write_reg(0x81, 0b01101100) # enable BLK dither mode, low light Y stretch, autogray enable
+    sensor.__write_reg(0x82, 0b00000100) # enable anti blur, disable AWB
+    sensor.__write_reg(0x03, 0b00000010) # high bits of exposure control
+    sensor.__write_reg(0x04, 0b10100000) # low bits of exposure control
+    sensor.__write_reg(0xb0, 0b11100000) # global gain
+
+    # RGB gains
+    sensor.__write_reg(0xa3, 0b01110000) # G gain odd
+    sensor.__write_reg(0xa4, 0b01110000) # G gain even
+    sensor.__write_reg(0xa5, 0b10000000) # R gain odd
+    sensor.__write_reg(0xa6, 0b10000000) # R gain even
+    sensor.__write_reg(0xa7, 0b10010000) # B gain odd
+    sensor.__write_reg(0xa8, 0b10010000) # B gain even
+    sensor.__write_reg(0xa9, 0b10010000) # G gain odd 2
+    sensor.__write_reg(0xaa, 0b10010000) # G gain even 2
+    sensor.__write_reg(0xfe, 0b00000010) # change to registers at page 2
+
+    sensor.__write_reg(0xd1, 0b01000000) # change Cb saturation
+    sensor.__write_reg(0xd2, 0b01000000) # change Cr saturation
+    sensor.__write_reg(0xd3, 0b01001000) # luma contrast
+    # sensor.__write_reg(0xd5, 0b00000000) # luma offset
+    sensor.skip_frames(time=2000) # Let the camera adjust.
+
+###### --------------------------------------------- ######
+
+""" Afternoon 2:00 ~ 4:30 (all lights on, partially cloudy):
+    Initialization: looking at the big doors
+    Lens: original w/ IR filter
+"""
+PURPLE = [(7, 20, 3, 17, -17, -3)]
+# Camera register initialization
+def init_sensor_target(isColored=True, framesize=sensor.HQVGA, windowsize=None) -> None:
+    sensor.reset()                        # Initialize the camera sensor.
+    if isColored:
+        sensor.set_pixformat(sensor.RGB565) # Set pixel format to RGB565 (or GRAYSCALE)
+    else:
+        sensor.set_pixformat(sensor.GRAYSCALE)
+    sensor.set_framesize(framesize)
+    if windowsize is not None:            # Set windowing to reduce the resolution of the image
+        sensor.set_windowing(windowsize)
+    sensor.skip_frames(time=1000)         # Let new settings take affect.
+    sensor.set_auto_whitebal(False)
+    sensor.set_auto_exposure(False)
+    sensor.__write_reg(0xfe, 0b00000000) # change to registers at page 0
+    sensor.__write_reg(0x80, 0b10111100) # enable gamma, CC, edge enhancer, interpolation, de-noise
+    sensor.__write_reg(0x81, 0b01101100) # enable BLK dither mode, low light Y stretch, autogray enable
+    sensor.__write_reg(0x82, 0b00000100) # enable anti blur, disable AWB
+    sensor.__write_reg(0x03, 0b00000000) # high bits of exposure control
+    sensor.__write_reg(0x04, 0b10100000) # low bits of exposure control
+    sensor.__write_reg(0xb0, 0b11100000) # global gain
+
+    # RGB gains
+    sensor.__write_reg(0xa3, 0b01110000) # G gain odd
+    sensor.__write_reg(0xa4, 0b01110000) # G gain even
+    sensor.__write_reg(0xa5, 0b10000000) # R gain odd
+    sensor.__write_reg(0xa6, 0b10000000) # R gain even
+    sensor.__write_reg(0xa7, 0b10010000) # B gain odd
+    sensor.__write_reg(0xa8, 0b10010000) # B gain even
+    sensor.__write_reg(0xa9, 0b10000000) # G gain odd 2
+    sensor.__write_reg(0xaa, 0b10000000) # G gain even 2
+    sensor.__write_reg(0xfe, 0b00000010) # change to registers at page 2
+
+    sensor.__write_reg(0xd1, 0b01000000) # change Cb saturation
+    sensor.__write_reg(0xd2, 0b01000000) # change Cr saturation
+    sensor.__write_reg(0xd3, 0b01001000) # luma contrast
+    # sensor.__write_reg(0xd5, 0b00000000) # luma offset
+    sensor.skip_frames(time=2000) # Let the camera adjust.
