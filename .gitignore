@@ -24,7 +24,6 @@ yarn-error.log*
 build/
 dist/
 out/
-lib/
 *.js
 *.js.map
 
