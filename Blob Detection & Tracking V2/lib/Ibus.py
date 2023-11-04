@@ -2,7 +2,7 @@
 Author       : Hanqing Qi, Karen Li
 Date         : 2023-11-03 19:16:19
 LastEditors  : Hanqing Qi
-LastEditTime : 2023-11-04 13:20:57
+LastEditTime : 2023-11-04 13:30:11
 FilePath     : /Bicopter-Vision-Control/Blob Detection & Tracking V2/lib/Ibus.py
 Description  : The iBus library for the Bicopter Vision Control project.
 """
@@ -27,6 +27,8 @@ class iBus:
         """
         # Initialize the UART
         self.uart = UART(pinset, baudrate, timeout_char=timeout) # (TX, RX) = (P1, P0) = (PB14, PB15)
+        # Flush the buffer
+        self._flush_buffer()
 
     def _pack_msg(self, raw_msg:list)->bytearray:
         """
@@ -66,6 +68,14 @@ class iBus:
         chA = checksum >> 8
         chB = checksum & 0xFF
         return (chA, chB)
+    
+    def _flush_buffer(self)->None:
+        """
+        @description: Flush the buffer of the UART.
+        @param       {*} self: 
+        @return      {*} None
+        """
+        self.uart.read(self.uart.any())
 
     def send(self, raw_msg:list=[0,0,0,0])->None:
         """
@@ -74,6 +84,9 @@ class iBus:
         @param       {list} raw_msg: The raw message to be sent
         @return      {*} None
         """
+        # Flush the buffer
+        self._flush_buffer()
+        # Pack the message
         msg = self._pack_msg(raw_msg)
         self.uart.write(msg)
         
