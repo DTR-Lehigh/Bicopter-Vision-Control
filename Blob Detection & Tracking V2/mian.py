@@ -2,7 +2,7 @@
 Author       : Hanqing Qi & Jiawei Xu & Karen Li
 Date         : 2023-11-03 18:53:44
 LastEditors  : Hanqing Qi
-LastEditTime : 2023-11-03 19:10:24
+LastEditTime : 2023-11-04 14:39:31
 FilePath     : /Bicopter-Vision-Control/Blob Detection & Tracking V2/mian.py
 Description  : The main python file for blob detection and tracking running on Nicla Vision
 """
@@ -20,59 +20,6 @@ import math
 
 
 ### ------------------------------------------------ Below are raw codes ------------------------------------------------ ###
-class Tracking_ROI:
-    """class Tracking_ROI:
-    A square tracking window class that takes in new detection
-    bounding box and adjust ROI for next detection
-    """
-
-    def __init__(
-        self, x0=0, y0=0, max_w=240, max_h=160, min_windowsize=20, forgetting_factor=0.5
-    ):
-        self.roi = [x0, y0, max_w, max_h]
-        self.x0 = x0
-        self.y0 = y0
-        self.max_w = max_w
-        self.max_h = max_h
-        self.min_windowsize = min_windowsize
-        self.ff = forgetting_factor
-
-    def update(self, detection=False, x=None, y=None, w=None, h=None):
-        if detection == False:
-            # failed detection result in maximum tracking box
-            self.roi[0] = (1 - self.ff) * self.roi[0] + self.ff * self.x0
-            self.roi[1] = (1 - self.ff) * self.roi[1] + self.ff * self.y0
-            self.roi[2] = (1 - self.ff) * self.roi[2] + self.ff * self.max_w
-            self.roi[3] = (1 - self.ff) * self.roi[3] + self.ff * self.max_h
-        else:
-            if x == None:
-                return
-            else:
-                xx = x - 0.15 * w
-                yy = y - 0.15 * h
-                ww = 1.3 * w
-                hh = 1.3 * h
-                self.roi[0] = (1 - self.ff) * self.roi[0] + self.ff * xx
-                self.roi[1] = (1 - self.ff) * self.roi[1] + self.ff * yy
-                self.roi[2] = (1 - self.ff) * self.roi[2] + self.ff * ww
-                self.roi[3] = (1 - self.ff) * self.roi[3] + self.ff * hh
-        # corner case
-        if self.roi[0] < self.x0:
-            self.roi[0] = self.x0
-        if self.roi[1] < self.y0:
-            self.roi[1] = self.y0
-        if self.roi[0] + self.roi[2] > self.max_w:
-            self.roi[2] = self.max_w - self.roi[0]
-        if self.roi[1] + self.roi[3] > self.max_h:
-            self.roi[3] = self.max_h - self.roi[1]
-
-    def reset(self):
-        self.roi = [self.x0, self.y0, self.max_w, self.max_h]
-
-    def get_roi(self):
-        return [int(self.roi[i]) for i in range(4)]
-
-
 class TrackedBlob:
     """TrackedBlob class:
     An advanced class that tracks a colored blob based on a feature vector of 5 values:
@@ -773,9 +720,6 @@ if __name__ == "__main__":
     clock = time.clock()
 
     mode = 0
-
-    # Initialize UART
-    uart = UART("LP1", 115200, timeout_char=2000)  # (TX, RX) = (P1, P0) = (PB14, PB15)
     # Sensor initialization
 
     mode, tracker = mode_initialization(mode, -1)
@@ -790,29 +734,4 @@ if __name__ == "__main__":
             y_value = roi[1] + roi[3] // 2
             w_value = int(feature_vec[2])
             h_value = int(feature_vec[3])
-            msg = IBus_message([x_value, y_value, w_value, h_value])
-        else:
-            msg = IBus_message([0, 0, 0, 0])
 
-        # send 32 byte message
-        uart.write(msg)
-        # receive 32 byte message
-        # if random.random() > 0.9:
-        #     res = mode_initialization(0, mode)
-        #     if res:
-        #         mode, tracker = res
-        # elif random.random() < 0.1:
-        #     res = mode_initialization(1, mode)
-        #     if res:
-        #         mode, tracker = res
-
-        if uart.any():
-            uart_input = uart.read()
-            if uart_input == 0x80:
-                res = mode_initialization(0, mode)
-                if res:
-                    mode, tracker = res
-            elif uart_input == 0x81:
-                res = mode_initialization(1, mode)
-                if res:
-                    mode, tracker = res
