@@ -2,8 +2,8 @@
 Author       : Hanqing Qi
 Date         : 2023-11-04 13:32:00
 LastEditors  : Hanqing Qi
-LastEditTime : 2023-11-04 15:05:06
-FilePath     : /Bicopter-Vision-Control/Blob Detection & Tracking V2/lib/roi.py
+LastEditTime : 2023-11-04 16:29:24
+FilePath     : /Bicopter-Vision-Control/Blob Detection & Tracking V2/lib/memroi.py
 Description  : The ROI(region of interest) library for the Bicopter Vision Control project.
 """
 
@@ -92,7 +92,13 @@ class memROI:
         return [new_cx - new_w / 2, new_cy - new_h / 2, new_w, new_h]
 
 
-    def update(self, new_roi=None)->None:
+    def update(self, new_roi:list=None)->None:
+        """
+        @description: Update the ROI with a new ROI.
+        @param       {*} self: 
+        @param       {list} new_roi: The new roi to map to [x0, y0, w, h]
+        @return      {*} None
+        """
         if new_roi is None: # No new detection is found in the maximum tracking window
             self.roi = self._map(self.roi, self.frame_params, 0) # Map the ROI to the frame by the forgetting factors
         else:
@@ -119,3 +125,28 @@ class memROI:
         @return      {list} The ROI [x0, y0, w, h]
         """
         return [round(value) for value in self.roi]
+
+if __name__ == "__main__":
+    # Instantiate the memROI class
+    roi_memory = memROI()
+
+    # Print initial ROI
+    print(f"Initial ROI: {roi_memory.get_roi()}")
+
+    # Test update without a new ROI (should apply forgetting factors)
+    roi_memory.update()
+    print(f"ROI after update with no new ROI: {roi_memory.get_roi()}")
+
+    # Test update with a new ROI smaller than the minimum window size (should apply gain factors)
+    new_roi_small = [10, 10, 15, 15]  # Example of a small ROI
+    roi_memory.update(new_roi_small)
+    print(f"ROI after update with small new ROI: {roi_memory.get_roi()}")
+
+    # Test update with a new ROI larger than the minimum window size (should apply gain factors)
+    new_roi_large = [30, 30, 100, 100]  # Example of a large ROI
+    roi_memory.update(new_roi_large)
+    print(f"ROI after update with large new ROI: {roi_memory.get_roi()}")
+
+    # Reset ROI
+    roi_memory.reset()
+    print(f"ROI after reset: {roi_memory.get_roi()}")
