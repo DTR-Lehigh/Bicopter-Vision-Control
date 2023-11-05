@@ -2,7 +2,7 @@
 Author       : Hanqing Qi & Jiawei Xu & Karen Li
 Date         : 2023-11-03 18:53:44
 LastEditors  : Hanqing Qi
-LastEditTime : 2023-11-04 14:39:31
+LastEditTime : 2023-11-04 22:11:36
 FilePath     : /Bicopter-Vision-Control/Blob Detection & Tracking V2/mian.py
 Description  : The main python file for blob detection and tracking running on Nicla Vision
 """
@@ -20,167 +20,7 @@ import math
 
 
 ### ------------------------------------------------ Below are raw codes ------------------------------------------------ ###
-class TrackedBlob:
-    """TrackedBlob class:
-    An advanced class that tracks a colored blob based on a feature vector of 5 values:
-        center x, center y, bbox width, bbox height, rotation angle
 
-    It has a window to compute the feature distance for enhanced smoothness
-    """
-
-    def __init__(
-        self,
-        init_blob,
-        norm_level: int,
-        feature_dist_threshold=100,
-        window_size=3,
-        blob_id=0,
-    ):
-        self.blob_history = [init_blob]
-        self.feature_vector = [
-            init_blob.x(),
-            init_blob.y(),
-            init_blob.w(),
-            init_blob.h(),
-            init_blob.rotation_deg(),
-        ]
-
-        self.norm_level = norm_level
-        self.untracked_frames = 0
-        self.feature_dist_threshold = feature_dist_threshold
-        self.window_size = window_size
-        self.id = blob_id
-
-    def reset(self):
-        """Reset the tracker by empty the blob_history and feature vector while
-        keeping the parameters
-        """
-        self.blob_history = None
-        self.feature_vector = None
-
-    def reinit(self, blob):
-        """reinitialize a reset blob by populate its history list and
-        feature vector with a new blob
-        """
-        self.blob_history = [blob]
-        self.feature_vector = [
-            blob.x(),
-            blob.y(),
-            blob.w(),
-            blob.h(),
-            blob.rotation_deg(),
-        ]
-        self.untracked_frames = 0
-
-    def compare(self, new_blob):
-        """Compare a new blob with a tracked blob in terms of
-        their feature vector distance
-        """
-        feature = (
-            new_blob.x(),
-            new_blob.y(),
-            new_blob.w(),
-            new_blob.h(),
-            new_blob.rotation_deg(),
-        )
-        my_feature = self.feature_vector
-        if not new_blob.code() == self.blob_history[-1].code():
-            # Different colors automatically grant a maimum distance
-            return 32767
-        elif self.norm_level == 1:
-            return (
-                math.fabs(feature[0] - my_feature[0])
-                + math.fabs(feature[1] - my_feature[1])
-                + math.fabs(feature[2] - my_feature[2])
-                + math.fabs(feature[3] - my_feature[3])
-                + math.fabs(feature[4] - my_feature[4])
-            )
-        else:
-            return math.sqrt(
-                (feature[0] - my_feature[0]) ** 2
-                + (feature[1] - my_feature[1]) ** 2
-                + (feature[2] - my_feature[2]) ** 2
-                + (feature[3] - my_feature[3]) ** 2
-                + (feature[4] - my_feature[4]) ** 2
-            )
-
-    def update(self, blobs):
-        """Update a tracked blob with a list of new blobs in terms of their feature distance.
-        Upon a new candidate blob, we update the tracking history based on whether the
-        histroy list is already filled or not
-        """
-        if blobs is None:
-            # auto fail if None is fed
-            self.untracked_frames += 1
-            return None
-
-        min_dist = 32767
-        candidate_blob = None
-        for b in blobs:
-            # find the blob with minimum feature distance
-            dist = self.compare(b)
-            if dist < min_dist:
-                min_dist = dist
-                candidate_blob = b
-
-        if min_dist < self.feature_dist_threshold:
-            # update the feature history if the feature distance is below the threshold
-            self.untracked_frames = 0
-            # print("Successful Update! Distance: {}".format(min_dist))
-            history_size = len(self.blob_history)
-            self.blob_history.append(candidate_blob)
-            feature = (
-                candidate_blob.x(),
-                candidate_blob.y(),
-                candidate_blob.w(),
-                candidate_blob.h(),
-                candidate_blob.rotation_deg(),
-            )
-
-            if history_size < self.window_size:
-                # populate the history list if the number of history blobs is below the
-                # window size
-                for i in range(5):
-                    # calculate the moving average
-                    self.feature_vector[i] = (
-                        self.feature_vector[i] * history_size + feature[i]
-                    ) / (history_size + 1)
-            else:
-                # O.W. pop the oldest and push a new one
-                oldest_blob = self.blob_history[0]
-                oldest_feature = (
-                    oldest_blob.x(),
-                    oldest_blob.y(),
-                    oldest_blob.w(),
-                    oldest_blob.h(),
-                    oldest_blob.rotation_deg(),
-                )
-                for i in range(5):
-                    self.feature_vector[i] = (
-                        self.feature_vector[i] * self.window_size
-                        + feature[i]
-                        - oldest_feature[i]
-                    ) / self.window_size
-                self.blob_history.pop(0)
-            return candidate_blob.rect()
-        else:
-            self.untracked_frames += 1
-            return None
-
-
-class Tracker:
-    """Base class for blob and goal tracker"""
-
-    def __init__(self, tracked_blob: TrackedBlob, thresholds, clock, show=True):
-        self.tracked_blob = tracked_blob
-        self.original_thresholds = [threshold for threshold in thresholds]
-        self.current_thresholds = [threshold for threshold in thresholds]
-        self.clock = clock
-        self.show = show
-        self.roi = Tracking_ROI(forgetting_factor=0.1)
-
-    def track(self):
-        pass
 
 
 class BlobTracker(Tracker):
@@ -522,82 +362,6 @@ def init_sensor_target(isColored=True, framesize=sensor.HQVGA, windowsize=None) 
     # sensor.skip_frames(time=2000) # Let the camera adjust.
 
 
-def draw_initial_blob(img, blob, sleep_us=500000) -> None:
-    """Draw initial blob and pause for sleep_us for visualization"""
-    if not blob or sleep_us < 41000:
-        # No need to show anything if we do not want to show
-        # it beyond human's 24fps classy eyes' capability
-        return None
-    else:
-        img.draw_edges(blob.min_corners(), color=(255, 0, 0))
-        img.draw_line(blob.major_axis_line(), color=(0, 255, 0))
-        img.draw_line(blob.minor_axis_line(), color=(0, 0, 255))
-        img.draw_rectangle(blob.rect())
-        img.draw_cross(blob.cx(), blob.cy())
-        img.draw_keypoints(
-            [(blob.cx(), blob.cy(), int(math.degrees(blob.rotation())))], size=20
-        )
-        # sleep for 500ms for initial blob debut
-        time.sleep_us(sleep_us)
-
-
-def find_max(blobs):
-    """Find maximum blob in a list of blobs
-    :input: a list of blobs
-    :return: Blob with the maximum area,
-             None if an empty list is passed
-    """
-    max_blob = None
-    max_area = 0
-    for blob in blobs:
-        if blob.area() > max_area:
-            max_blob = blob
-            max_area = blob.pixels()
-    return max_blob
-
-
-def comp_new_threshold(statistics, mul_stdev=2):
-    """Generating new thresholds based on detection statistics
-    l_low = l_mean - mul_stdev*l_stdev
-    l_high = l_mean + mul_stdev*l_stdev
-    a_low = a_mean - mul_stdev*a_stdev
-    a_high = a_mean - mul_stdev*a_stdev
-    b_low = b_mean - mul_stdev*b_stdev
-    b_high = b_mean - mul_stdev*b_stdev
-    """
-    l_mean = statistics.l_mean()
-    l_stdev = statistics.l_stdev()
-    a_mean = statistics.a_mean()
-    a_stdev = statistics.a_stdev()
-    b_mean = statistics.b_mean()
-    b_stdev = statistics.b_stdev()
-    new_threshold = (
-        l_mean - mul_stdev * l_stdev,
-        l_mean + mul_stdev * l_stdev,
-        a_mean - mul_stdev * a_stdev,
-        a_mean - mul_stdev * a_stdev,
-        b_mean - mul_stdev * b_stdev,
-        b_mean - mul_stdev * b_stdev,
-    )
-    return new_threshold
-
-
-def comp_weighted_avg(vec1, vec2, w1=0.5, w2=0.5):
-    """Weighted average, by default just normal average"""
-    avg = [int(w1 * vec1[i] + w2 * vec2[i]) for i in range(len(vec1))]
-    return tuple(avg)
-
-
-def one_norm_dist(v1, v2):
-    # 1-norm distance between two vectors
-    return sum([abs(v1[i] - v2[i]) for i in range(len(v1))])
-
-
-def two_norm_dist(v1, v2):
-    # 2-norm distance between two vectors
-    return math.sqrt(sum([(v1[i] - v2[i]) ** 2 for i in range(len(v1))]))
-
-
 def find_reference(
     clock,
     thresholds,
@@ -638,33 +402,6 @@ def find_reference(
     draw_initial_blob(img, biggest_blob, time_show_us)
     statistics = img.get_statistics(roi=biggest_blob.rect())
     return biggest_blob, statistics
-
-
-def checksum(arr, initial=0):
-    """The last pair of byte is the checksum on iBus"""
-    sum = initial
-    for a in arr:
-        sum += a
-    checksum = 0xFFFF - sum
-    chA = checksum >> 8
-    chB = checksum & 0xFF
-    return chA, chB
-
-
-def IBus_message(message_arr_to_send):
-    msg = bytearray(32)
-    msg[0] = 0x20
-    msg[1] = 0x40
-    for i in range(len(message_arr_to_send)):
-        msg_byte_tuple = bytearray(message_arr_to_send[i].to_bytes(2, "little"))
-        msg[int(2 * i + 2)] = msg_byte_tuple[0]
-        msg[int(2 * i + 3)] = msg_byte_tuple[1]
-
-    # Perform the checksume
-    chA, chB = checksum(msg[:-2], 0)
-    msg[-1] = chA
-    msg[-2] = chB
-    return msg
 
 
 def mode_initialization(input_mode, mode):

@@ -2,7 +2,7 @@
 Author       : Hanqing Qi, Karen Li
 Date         : 2023-11-03 19:16:19
 LastEditors  : Hanqing Qi
-LastEditTime : 2023-11-04 13:30:11
+LastEditTime : 2023-11-04 22:05:38
 FilePath     : /Bicopter-Vision-Control/Blob Detection & Tracking V2/lib/Ibus.py
 Description  : The iBus library for the Bicopter Vision Control project.
 """
@@ -15,7 +15,7 @@ IBUS_MSG_HEADER = [0x20, 0x40] # The header of the iBus message
 NICLA_TGT = 0x11 # Flag to set Nicla in target mode
 NICLA_GAL = 0x22 # Flag to set Nicla in goal mode
 
-class iBus:
+class IBus:
     def __init__(self, pinset:str="LP1", baudrate:int=115200, timeout:int=2000)->None:
         """
         @description: Initialize the iBus object.
@@ -107,7 +107,7 @@ class iBus:
 
 if __name__ == "__main__":
     # Initialize the iBus class with default parameters
-    ibus = iBus()
+    ibus = IBus()
     # Define a test raw message list
     test_raw_msg = [121, 1117, 211, 1104]
     # Test sending a message

@@ -2,7 +2,7 @@
 Author       : Hanqing Qi
 Date         : 2023-11-04 15:07:52
 LastEditors  : Hanqing Qi
-LastEditTime : 2023-11-04 18:15:20
+LastEditTime : 2023-11-04 20:32:27
 FilePath     : /Bicopter-Vision-Control/Blob Detection & Tracking V2/lib/curBlob.py
 Description  : 
 """
@@ -15,7 +15,7 @@ NORM_LEVEL = 2  # Default to use L2 norm, change to L1 to reduce computation
 MAX_FEATURE_DIST = 32767  # The maximum feature distance
 
 
-class curBLOB:
+class CurBLOB:
     def __init__(
         self,
         initial_blob,
@@ -100,7 +100,7 @@ class curBLOB:
             return sum([abs(new_feature[i] - old_feature[i]) for i in range(5)])
         elif self.norm_level == 2:  # The norm level is L2
             return math.sqrt(
-                sum([(new_feature[i] - old_feature[i]) ** 2 for i in range(5)]) ** 0.5
+                sum([(new_feature[i] - old_feature[i]) ** 2 for i in range(5)])
             )
 
     def update(self, list_of_blob: list) -> list:

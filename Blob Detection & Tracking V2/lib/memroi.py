@@ -1,8 +1,8 @@
 """
-Author       : Hanqing Qi
+Author       : Hanqing Qi, Karen Li
 Date         : 2023-11-04 13:32:00
 LastEditors  : Hanqing Qi
-LastEditTime : 2023-11-04 16:29:24
+LastEditTime : 2023-11-04 22:05:10
 FilePath     : /Bicopter-Vision-Control/Blob Detection & Tracking V2/lib/memroi.py
 Description  : The ROI(region of interest) library for the Bicopter Vision Control project.
 """
@@ -14,7 +14,7 @@ FF_SIZE = 0.5 # The forgetting factor for the size
 GF_POSITION = 0.5 # The gain factor for the position
 GF_SIZE = 0.5 # The gain factor for the size
 
-class memROI:
+class MemROI:
     def __init__(self, frame_params:list = FRAME_PARAMS, min_windowsize:int=20, ffp:float=FF_POSITION, ffs:float=FF_SIZE, gfp:float=GF_POSITION, gfs:float=GF_SIZE)->None:
         """
         @description: Constructor of the ROI object that memorizes previous states.
@@ -128,7 +128,7 @@ class memROI:
 
 if __name__ == "__main__":
     # Instantiate the memROI class
-    roi_memory = memROI()
+    roi_memory = MemROI()
 
     # Print initial ROI
     print(f"Initial ROI: {roi_memory.get_roi()}")
