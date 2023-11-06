@@ -1,8 +1,8 @@
 """
-Author       : Hanqing Qi
+Author       : Hanqing Qi, Jiawei Xu
 Date         : 2023-11-04 15:07:52
 LastEditors  : Hanqing Qi
-LastEditTime : 2023-11-05 20:18:39
+LastEditTime : 2023-11-05 21:58:56
 FilePath     : /Bicopter-Vision-Control/Blob Detection & Tracking V2/lib/curBlob.py
 Description  : The current blob object that memorizes previous states
 """
@@ -134,7 +134,7 @@ class CurBLOB:
             if history_size < self.window_size:
                 # Calculate the moving average directly if the blob history is not filled
                 for i in range(5):
-                    # calculate the moving average
+                    # Calculate the moving average
                     self.feature_vector[i] = (self.feature_vector[i] * history_size + candidate_feature[i]) / (
                         history_size + 1
                     )

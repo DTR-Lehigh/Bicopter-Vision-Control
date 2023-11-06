@@ -1,8 +1,8 @@
 """
-Author       : Hanqing Qi
+Author       : Hanqing Qi, Jiawei Xu
 Date         : 2023-11-04 19:02:37
 LastEditors  : Hanqing Qi
-LastEditTime : 2023-11-05 19:05:16
+LastEditTime : 2023-11-05 22:05:36
 FilePath     : /Bicopter-Vision-Control/Blob Detection & Tracking V2/lib/tracker.py
 Description  : The tracker class for blob tracking, contains the BLOBTracker and GoalTracker
 """
@@ -11,7 +11,7 @@ from machine import Pin
 import sensor, image
 from pyb import LED
 from lib.curblob import CurBLOB
-import lib.memroi as MemROI
+from lib.memroi import MemROI
 import time
 import math
 import omv
@@ -58,7 +58,7 @@ class Tracker:
         # TODO: Implement this function in the child class
         pass
 
-    def draw_initial_blob(self, img: image, blob: image.blob, sleep_us: int = 500000) -> None:
+    def draw_initial_blob(self, img: image, blob: image.blob, sleep_us: int = 200000) -> None:
         """
         @description:
         @param       {image} img: The image to be drawn on
@@ -170,15 +170,17 @@ class Tracker:
         @param       {bool} lost: If we lost the blob
         @return      {*} None
         """
-        self.g_LED.off()
-        self.r_LED.off()
-        self.b_LED.off()
         if tracking and detecting and not lost:
+            self.g_LED.off()
+            self.r_LED.off()
             self.b_LED.on()
         elif tracking and not detecting and not lost:
+            self.g_LED.off()
             self.b_LED.on()
             self.r_LED.on()
-        elif not tracking and not detecting and lost:
+        elif lost:
+            self.b_LED.off()
+            self.r_LED.off()
             self.g_LED.on()
         else:
             print("Error: Invalid LED state")
@@ -222,14 +224,15 @@ class BLOBTracker(Tracker):
         @description: Track the blob with dynamic threshold and ROI
         @return      {tuple} The feature vector of the tracked blob and whether the blob is tracked
         """
-        self.update_leds(tracking=True, detecting=True, lost=False)  # Set the LEDs to indicate tracking
         # Initialize the blob with the max blob in view if it is not initialized
         if not self.tracked_blob.blob_history:
             # There is no blob history, initialize the blob
+            self.update_leds(tracking=False, detecting=False, lost=True)  # Set the LEDs to indicate tracking
             reference_blob, statistics = self.find_reference(time_show_us=0)  # Find the blob with the largest area
             self.tracked_blob.reinit(reference_blob)  # Initialize the tracked blob with the reference blob
             self.update_thresholds(statistics)  # Update the dynamic threshold
             self.roi.update(self.tracked_blob.feature_vector[0:4])  # Update the ROI
+            self.update_leds(tracking=True, detecting=True, lost=False)
             return (
                 self.tracked_blob.feature_vector,
                 True,
@@ -260,6 +263,7 @@ class BLOBTracker(Tracker):
         if blob_rect:
             # If we discover the reference blob again
             self.roi.update(blob_rect)  # Update the ROI
+            self.update_leds(tracking=True, detecting=True, lost=False)
             statistics = img.get_statistics(roi=blob_rect)
             self.update_thresholds(statistics)  # Update the dynamic threshold
         else:
@@ -363,13 +367,14 @@ class GoalTracker(Tracker):
         @param       {bool} edge_removal: Whether to remove the edge noises (default: True)
         @return      {tuple} The feature vector of the tracked blob and whether the blob is tracked
         """
-        self.update_leds(tracking=True, detecting=True, lost=False)  # Set the LEDs to indicate tracking
         # Initialize the blob with the max blob in view if it is not initialized
         if not self.tracked_blob.blob_history:
+            self.update_leds(tracking=False, detecting=False, lost=True)  # Set the LEDs to indicate tracking
             reference_blob, statistics = self.find_reference(time_show_us=0)  # Find the blob with the largest area
             self.tracked_blob.reinit(reference_blob)  # Initialize the tracked blob with the reference blob
             self.update_thresholds(statistics)  # Update the dynamic threshold
             self.roi.update(self.tracked_blob.feature_vector[0:4])  # Update the ROI
+            self.update_leds(tracking=True, detecting=True, lost=False)
             return self.tracked_blob.feature_vector, True
         # Track the blob
         img, list_of_blobs = self.detect(isColored=True, edge_removal=edge_removal)
@@ -386,6 +391,7 @@ class GoalTracker(Tracker):
         if blob_rect:
             # If we discover the reference blob again
             self.roi.update(blob_rect)
+            self.update_leds(tracking=True, detecting=True, lost=False)
             statistics = img.get_statistics(roi=blob_rect)
             self.update_thresholds(statistics)
         else:
