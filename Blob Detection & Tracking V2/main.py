@@ -1,8 +1,8 @@
 """
-Author       : Jiawei Xu, Hanqing Qi
+Author       : Jiawei Xu, Hanqing Qi, Karen Li
 Date         : 2023-11-05 20:22:47
 LastEditors  : Hanqing Qi
-LastEditTime : 2023-11-05 22:35:11
+LastEditTime : 2023-11-05 22:58:31
 FilePath     : /Bicopter-Vision-Control/Blob Detection & Tracking V2/main.py
 Description  : The main program for bicoper vision control.
 """
@@ -80,37 +80,40 @@ def init_sensor(isColored: bool = True, framesize=sensor.HQVGA, windowsize=None)
     # sensor.skip_frames(time=2000) # Let the camera adjust.
 
 
-def set_mode(current_mode:str, desired_mode:str)->tuple:
+def set_mode(current_mode:str, desired_mode:str, mytracker=None) -> tuple:
     """
     @description: Set the mode of the detection
-    @param       {str} current_mode: The current mode of the detection
-    @param       {str} desired_mode: The desired mode of the detection
+    @param       {str} current_mode: The current mode of the detection (default to None)
+    @param       {str} desired_mode: The desired mode of the detection (default to "T" target mode)
+    @param       {*} mytracker: The tracker object (default to None)
     @return      {tuple} The current mode and the tracker
     """
-    if current_mode == desired_mode:
-        print("Already in the desired mode!")
-        return current_mode, None
+    def change_mode(mode):
+            init_sensor(isColored=(mode == "T"))
+            thresholds = PURPLE if mode == "T" else GRAY
+            return blob_tracking(thresholds, myclock, blob_type=1 if mode == "T" else 2)
+
+    # Check if the mode is valid
+    if desired_mode not in ["T", "G"]:
+        print("Invalid mode! Defaulting to target mode 'T'.")
+        desired_mode = "T"
+
+    # If no tracker or a mode change is required, update the tracker
+    if not mytracker or current_mode != desired_mode:
+        mytracker = change_mode(desired_mode)
+        print(f"Switched to {'target' if desired_mode == 'T' else 'goal'} tracking mode.")
     else:
-        if desired_mode == "T":
-            # Target tracking mode
-            init_sensor(isColored=True) # Initialize the sensor
-            thresholds = PURPLE # Set the thresholds
-            mytracker = blob_tracking(thresholds, myclock, blob_type=1)
-        elif desired_mode == "G":
-            init_sensor(isColored=False) # Initialize the sensor
-            thresholds = GRAY # Set the thresholds
-            mytracker = blob_tracking(thresholds, myclock, blob_type=2)
-        else:
-            print("Invalid mode!")
-            return current_mode, None
-        return desired_mode, mytracker
+        print("Already in the desired mode, no change required.")
+
+    # Return the (possibly updated) mode and tracker
+    return desired_mode, mytracker
 
 
 if __name__ == "__main__":
     myclock = time.clock() # Create a clock object to track the FPS
     detection_mode = "T" # Default to target mode
     myibus = IBus() # Initialize inter-board communication
-    detection_mode, mytracker = set_mode(detection_mode, detection_mode) # Set the mode
+    detection_mode, mytracker = set_mode(None, detection_mode) # Initialize the tracker
 
     while True:
         mytracker.track()
@@ -131,5 +134,4 @@ if __name__ == "__main__":
         else:
             myibus.send([-1, 0, 0, 0, 0, 0, 0, 0, 0])
         received_mode = myibus.receive()
-        if received_mode != detection_mode:
-            detection_mode, mytracker = set_mode(detection_mode, received_mode)
+        detection_mode, mytracker = set_mode(detection_mode, received_mode, mytracker)
