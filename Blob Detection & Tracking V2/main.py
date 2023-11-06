@@ -2,7 +2,7 @@
 Author       : Jiawei Xu, Hanqing Qi
 Date         : 2023-11-05 20:22:47
 LastEditors  : Hanqing Qi
-LastEditTime : 2023-11-05 22:25:57
+LastEditTime : 2023-11-05 22:35:11
 FilePath     : /Bicopter-Vision-Control/Blob Detection & Tracking V2/main.py
 Description  : The main program for bicoper vision control.
 """
@@ -100,6 +100,9 @@ def set_mode(current_mode:str, desired_mode:str)->tuple:
             init_sensor(isColored=False) # Initialize the sensor
             thresholds = GRAY # Set the thresholds
             mytracker = blob_tracking(thresholds, myclock, blob_type=2)
+        else:
+            print("Invalid mode!")
+            return current_mode, None
         return desired_mode, mytracker
 
 
@@ -107,7 +110,7 @@ if __name__ == "__main__":
     myclock = time.clock() # Create a clock object to track the FPS
     detection_mode = "T" # Default to target mode
     myibus = IBus() # Initialize inter-board communication
-    detection_mode, mytracker = set_mode(0, detection_mode) # Set the mode
+    detection_mode, mytracker = set_mode(detection_mode, detection_mode) # Set the mode
 
     while True:
         mytracker.track()
