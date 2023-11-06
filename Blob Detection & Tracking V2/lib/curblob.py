@@ -2,9 +2,9 @@
 Author       : Hanqing Qi
 Date         : 2023-11-04 15:07:52
 LastEditors  : Hanqing Qi
-LastEditTime : 2023-11-04 20:32:27
+LastEditTime : 2023-11-05 20:18:39
 FilePath     : /Bicopter-Vision-Control/Blob Detection & Tracking V2/lib/curBlob.py
-Description  : 
+Description  : The current blob object that memorizes previous states
 """
 
 import image
@@ -20,8 +20,8 @@ class CurBLOB:
         self,
         initial_blob,
         norm_level: int = NORM_LEVEL,
-        feature_dist_threshold: int = 100,
-        window_size=3,
+        feature_dist_threshold: int = 200,
+        window_size=5,
         blob_id=0,
     ) -> None:
         """
@@ -44,9 +44,7 @@ class CurBLOB:
         ]
         self.norm_level = norm_level
         self.untracked_frames = 0  # number of frames that the blob is not tracked
-        self.feature_dist_threshold = (
-            feature_dist_threshold  # threshold for feature distance
-        )
+        self.feature_dist_threshold = feature_dist_threshold  # threshold for feature distance
         self.window_size = window_size  # window size for moving average
         self.id = blob_id  # id of the blob
 
@@ -92,16 +90,12 @@ class CurBLOB:
             new_blob.rotation_deg(),
         )  # get the feature vector of the new blob
         old_feature = self.feature_vector  # get the feature vector of the current blob
-        if (
-            not new_blob.code() == self.blob_history[-1].code()
-        ):  # Check if the color is the same
+        if not new_blob.code() == self.blob_history[-1].code():  # Check if the color is the same
             return MAX_FEATURE_DIST  # Different colors automatically grant a maximum distance
         elif self.norm_level == 1:  # The norm level is L1
             return sum([abs(new_feature[i] - old_feature[i]) for i in range(5)])
         elif self.norm_level == 2:  # The norm level is L2
-            return math.sqrt(
-                sum([(new_feature[i] - old_feature[i]) ** 2 for i in range(5)])
-            )
+            return math.sqrt(sum([(new_feature[i] - old_feature[i]) ** 2 for i in range(5)]))
 
     def update(self, list_of_blob: list) -> list:
         """
@@ -126,9 +120,7 @@ class CurBLOB:
         if min_dist < self.feature_dist_threshold:
             # Update the feature history if the feature distance is below the threshold
             self.untracked_frames = 0  # Reset the number of untracked frames
-            history_size = len(
-                self.blob_history
-            )  # Get the number of blobs in the history
+            history_size = len(self.blob_history)  # Get the number of blobs in the history
             self.blob_history.append(candidate_blob)
             # Calculate the feature vector of the candidate blob
             candidate_feature = (
@@ -141,10 +133,11 @@ class CurBLOB:
 
             if history_size < self.window_size:
                 # Calculate the moving average directly if the blob history is not filled
-                self.feature_vector = [
-                    (current + new) / (history_size + 1)
-                    for current, new in zip(self.feature_vector, candidate_feature)
-                ]
+                for i in range(5):
+                    # calculate the moving average
+                    self.feature_vector[i] = (self.feature_vector[i] * history_size + candidate_feature[i]) / (
+                        history_size + 1
+                    )
             else:
                 # Remove the oldest blob from the history and calculate the moving average
                 oldest_blob = self.blob_history[0]
@@ -155,13 +148,12 @@ class CurBLOB:
                     oldest_blob.h(),
                     oldest_blob.rotation_deg(),
                 )
-                self.feature_vector = [
-                    (current * self.window_size - old + new) / history_size
-                    for current, old, new in zip(
-                        self.feature_vector, oldest_feature, candidate_feature
-                    )
-                ]
-            return candidate_blob.rect()
+                for i in range(5):
+                    self.feature_vector[i] = (
+                        self.feature_vector[i] * self.window_size + candidate_feature[i] - oldest_feature[i]
+                    ) / self.window_size
+                self.blob_history.pop(0)
+            return list(candidate_blob.rect())
         else:
             # Increase the number of untracked frames if no good candidate is found
             self.untracked_frames += 1

@@ -2,7 +2,7 @@
 Author       : Hanqing Qi, Karen Li
 Date         : 2023-11-04 13:32:00
 LastEditors  : Hanqing Qi
-LastEditTime : 2023-11-04 22:05:10
+LastEditTime : 2023-11-05 20:11:31
 FilePath     : /Bicopter-Vision-Control/Blob Detection & Tracking V2/lib/memroi.py
 Description  : The ROI(region of interest) library for the Bicopter Vision Control project.
 """
@@ -103,11 +103,8 @@ class MemROI:
             self.roi = self._map(self.roi, self.frame_params, 0) # Map the ROI to the frame by the forgetting factors
         else:
             # Scale up the new_roi
-            new_roi[0] = new_roi[0] - 0.15 * new_roi[2]
-            new_roi[1] = new_roi[1] - 0.15 * new_roi[3]
-            new_roi[2] = 1.3 * new_roi[2]
-            new_roi[3] = 1.3 * new_roi[3]
-            self.roi = self._map(self.roi, new_roi, 1) # Map the ROI to the new_roi by the gain factors
+            expanded_roi = [new_roi[0] - 0.15 * new_roi[2], new_roi[1] - 0.15 * new_roi[3], 1.3 * new_roi[2], 1.3 * new_roi[3]] 
+            self.roi = self._map(self.roi, expanded_roi, 1) # Map the ROI to the new_roi by the gain factors
         self._clamp() # Clamp the ROI to be within the frame
 
     def reset(self)->None:

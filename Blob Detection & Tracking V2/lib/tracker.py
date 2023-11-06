@@ -2,16 +2,16 @@
 Author       : Hanqing Qi
 Date         : 2023-11-04 19:02:37
 LastEditors  : Hanqing Qi
-LastEditTime : 2023-11-05 17:05:51
+LastEditTime : 2023-11-05 19:05:16
 FilePath     : /Bicopter-Vision-Control/Blob Detection & Tracking V2/lib/tracker.py
-Description  : The parent class for bolbtacker and goaltracker.
+Description  : The tracker class for blob tracking, contains the BLOBTracker and GoalTracker
 """
 
 from machine import Pin
 import sensor, image
 from pyb import LED
-import curblob
-import memroi
+from lib.curblob import CurBLOB
+import lib.memroi as MemROI
 import time
 import math
 import omv
@@ -20,7 +20,6 @@ import omv
 class Tracker:
     def __init__(
         self,
-        tracked_blob: curblob.CurBLOB,
         thresholds: list,
         clock: time.clock,
         show: bool = True,
@@ -31,7 +30,6 @@ class Tracker:
         """
         @description: Constructor of the Tracker class
         @param       {*} self:
-        @param       {curblob} tracked_blob: The blob to be tracked
         @param       {list} thresholds: The list of thresholds for goal or balloon
         @param       {time} clock: The clock to track the time
         @param       {bool} show: Whether to show the image (default: True)
@@ -40,18 +38,17 @@ class Tracker:
         @param       {int} threshold_update_rate: The rate of threshold update (default: 0)
         @return      {*} None
         """
-        self.tracked_blob = tracked_blob  # The blob to be tracked
         self.original_thresholds = [threshold for threshold in thresholds]  # Deep copy the thresholds
         self.current_thresholds = [threshold for threshold in thresholds]  # Deep copy the thresholds
         self.clock = clock  # The clock to track the time
         self.show = show  # Whether to show the image
-        self.roi = memroi.MemROI(ffp=0.1, ffs=0.1, gfp=0.2, gfs=0.2)  # The ROI of the blob
+        self.roi = MemROI(ffp=0.1, ffs=0.1, gfp=0.2, gfs=0.2)  # The ROI of the blob
         self.max_untracked_frames = max_untracked_frames  # The maximum number of untracked frames
         self.dynamic_threshold = dynamic_threshold  # Whether to use dynamic threshold
         self.threshold_update_rate = threshold_update_rate  # The rate of threshold update
-        self.r_LED = pyb.LED(1)  # The red LED
-        self.g_LED = pyb.LED(2)  # The green LED
-        self.b_LED = pyb.LED(3)  # The blue LED
+        self.r_LED = LED(1)  # The red LED
+        self.g_LED = LED(2)  # The green LED
+        self.b_LED = LED(3)  # The blue LED
 
     def track(self):
         # TODO: Implement this function in the child class
@@ -61,7 +58,7 @@ class Tracker:
         # TODO: Implement this function in the child class
         pass
 
-    def draw_blob(img: image, blob: image.blob, sleep_us: int = 500000) -> None:
+    def draw_initial_blob(self, img: image, blob: image.blob, sleep_us: int = 500000) -> None:
         """
         @description:
         @param       {image} img: The image to be drawn on
@@ -83,7 +80,7 @@ class Tracker:
             # Sleep for 500ms for initial blob debut
             time.sleep_us(sleep_us)
 
-    def _find_max(nice_blobs: list) -> image.blob:
+    def _find_max(self, nice_blobs: list) -> image.blob:
         """
         @description: Find the blob with the largest area
         @param       {list} nice_blobs: The list of blobs to be compared
@@ -97,7 +94,7 @@ class Tracker:
                 max_area = blob.pixels()
         return max_blob
 
-    def _comp_new_threshold(statistics: image.statistics, mul_stdev: float = 3) -> tuple:
+    def _comp_new_threshold(self, statistics: image.statistics, mul_stdev: float = 3) -> tuple:
         """
         @description: Compute the new threshold based on the color statistics
         @param       {image} statistics: The color statistics of the blob
@@ -122,7 +119,7 @@ class Tracker:
         )
         return new_threshold
 
-    def _comp_weighted_avg(new_vec: tuple, orig_vec: tuple, w1: float = 0.1, w2: float = 0.9) -> tuple:
+    def _comp_weighted_avg(self, new_vec: tuple, orig_vec: tuple, w1: float = 0.1, w2: float = 0.9) -> tuple:
         """
         @description: Compute the weighted average of two vectors
         @param       {tuple} new_vec: The new vector
@@ -191,7 +188,6 @@ class Tracker:
 class BLOBTracker(Tracker):
     def __init__(
         self,
-        tracked_blob: curblob.CurBLOB,
         thresholds: list,
         clock: time.clock,
         show: bool = True,
@@ -202,7 +198,6 @@ class BLOBTracker(Tracker):
         """
         @description: Constructor of the BLOBTracker class
         @param       {*} self:
-        @param       {curblob} tracked_blob: The blob to be tracked
         @param       {list} thresholds: The list of thresholds (green, purple)
         @param       {time} clock: The clock to track the time
         @param       {bool} show: Whether to show the image (default: True)
@@ -212,7 +207,6 @@ class BLOBTracker(Tracker):
         @return      {*} None
         """
         super().__init__(
-            tracked_blob,
             thresholds,
             clock,
             show,
@@ -220,6 +214,8 @@ class BLOBTracker(Tracker):
             dynamic_threshold,
             threshold_update_rate,
         )  # Initialize the parent class
+        init_blob, statistics = self.find_reference()  # Find the blob with the largest area
+        self.tracked_blob = CurBLOB(init_blob)  # The tracked blob
 
     def track(self):
         """
@@ -230,9 +226,7 @@ class BLOBTracker(Tracker):
         # Initialize the blob with the max blob in view if it is not initialized
         if not self.tracked_blob.blob_history:
             # There is no blob history, initialize the blob
-            reference_blob, statistics = self.find_reference(
-                self.clock, self.original_thresholds, time_show_us=0
-            )  # Find the blob with the largest area
+            reference_blob, statistics = self.find_reference(time_show_us=0)  # Find the blob with the largest area
             self.tracked_blob.reinit(reference_blob)  # Initialize the tracked blob with the reference blob
             self.update_thresholds(statistics)  # Update the dynamic threshold
             self.roi.update(self.tracked_blob.feature_vector[0:4])  # Update the ROI
@@ -326,7 +320,6 @@ class BLOBTracker(Tracker):
 class GoalTracker(Tracker):
     def __init__(
         self,
-        tracked_blob: curblob.CurBLOB,
         thresholds: list,
         clock: time.clock,
         show: bool = True,
@@ -339,7 +332,6 @@ class GoalTracker(Tracker):
         """
         @description:
         @param       {*} self:
-        @param       {curblob} tracked_blob: The blob to be tracked
         @param       {list} thresholds: The list of thresholds for the goal
         @param       {time} clock: The clock to track the time
         @param       {bool} show: Whether to show the image (default: True)
@@ -351,7 +343,6 @@ class GoalTracker(Tracker):
         @return      {*}
         """
         super().__init__(
-            tracked_blob,
             thresholds,
             clock,
             show,
@@ -359,6 +350,8 @@ class GoalTracker(Tracker):
             dynamic_threshold,
             threshold_update_rate,
         )
+        blob, statistics = self.find_reference()  # Find the blob with the largest area
+        self.tracked_blob = CurBLOB(blob)  # The tracked blob
         self.IR_LED = Pin(LEDpin, Pin.OUT)
         self.IR_LED.value(0)
         self.sensor_sleep_time = sensor_sleep_time
