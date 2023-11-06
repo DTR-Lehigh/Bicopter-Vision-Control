@@ -2,7 +2,7 @@
 Author       : Hanqing Qi, Jiawei Xu
 Date         : 2023-11-04 19:02:37
 LastEditors  : Hanqing Qi
-LastEditTime : 2023-11-05 22:05:36
+LastEditTime : 2023-11-06 18:08:30
 FilePath     : /Bicopter-Vision-Control/Blob Detection & Tracking V2/lib/tracker.py
 Description  : The tracker class for blob tracking, contains the BLOBTracker and GoalTracker
 """
@@ -196,6 +196,7 @@ class BLOBTracker(Tracker):
         max_untracked_frames: int = 15,
         dynamic_threshold: bool = False,
         threshold_update_rate: float = 0,
+        feature_distance_threshold: float = 200,
     ) -> None:
         """
         @description: Constructor of the BLOBTracker class
@@ -206,6 +207,7 @@ class BLOBTracker(Tracker):
         @param       {int} max_untracked_frames: The maximum number of untracked frames until the tracker resets (default: 15)
         @param       {bool} dynamic_threshold: Whether to use dynamic threshold (default: False)
         @param       {float} threshold_update_rate: The rate of threshold update (default: 0)
+        @param       {float} feature_distance_threshold: The feature distance threshold (default: 200)
         @return      {*} None
         """
         super().__init__(
@@ -217,7 +219,7 @@ class BLOBTracker(Tracker):
             threshold_update_rate,
         )  # Initialize the parent class
         init_blob, statistics = self.find_reference()  # Find the blob with the largest area
-        self.tracked_blob = CurBLOB(init_blob)  # The tracked blob
+        self.tracked_blob = CurBLOB(init_blob, feature_dist_threshold=feature_distance_threshold)  # The tracked blob
 
     def track(self):
         """
@@ -320,7 +322,6 @@ class BLOBTracker(Tracker):
         statistics = img.get_statistics(roi=best_blob.rect())  # Get the color statistics of the blob in actual image
         return best_blob, statistics
 
-
 class GoalTracker(Tracker):
     def __init__(
         self,
@@ -330,6 +331,7 @@ class GoalTracker(Tracker):
         max_untracked_frames: int = 5,
         dynamic_threshold: bool = False,
         threshold_update_rate: float = 0,
+        feature_distance_threshold: float = 200,
         LEDpin: str = "PG12",
         sensor_sleep_time: int = 50000,
     ) -> None:
@@ -342,6 +344,7 @@ class GoalTracker(Tracker):
         @param       {int} max_untracked_frames: The maximum number of untracked frames until the tracker resets (default: 5)
         @param       {bool} dynamic_threshold: Whether to use dynamic threshold (default: False)
         @param       {float} threshold_update_rate: The rate of threshold update (default: 0)
+        @param       {float} feature_distance_threshold: The feature distance threshold (default: 200)
         @param       {str} LEDpin: The pin of the IR LED (default: "PG12")
         @param       {int} sensor_sleep_time: The time to sleep after the sensor captures a new image (default: 50000)
         @return      {*}
@@ -355,7 +358,7 @@ class GoalTracker(Tracker):
             threshold_update_rate,
         )
         blob, statistics = self.find_reference()  # Find the blob with the largest area
-        self.tracked_blob = CurBLOB(blob)  # The tracked blob
+        self.tracked_blob = CurBLOB(blob, feature_dist_threshold=feature_distance_threshold) # The tracked blob
         self.IR_LED = Pin(LEDpin, Pin.OUT)
         self.IR_LED.value(0)
         self.sensor_sleep_time = sensor_sleep_time
