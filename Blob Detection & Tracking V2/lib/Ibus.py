@@ -2,8 +2,8 @@
 Author       : Hanqing Qi, Karen Li
 Date         : 2023-11-03 19:16:19
 LastEditors  : Hanqing Qi
-LastEditTime : 2023-11-05 22:05:45
-FilePath     : /Bicopter-Vision-Control/Blob Detection & Tracking V2/lib/ibus.py
+LastEditTime : 2023-11-07 16:08:40
+FilePath     : /Bicopter-Vision-Control/Blob Detection & Tracking V2/lib/Ibus.py
 Description  : The iBus library for the Bicopter Vision Control project.
 """
 
@@ -50,7 +50,7 @@ class IBus:
             msg[2 * i + 3] = raw_byte_tuple[1]
 
         # Calculate the checksum
-        checksum = self._checksum(msg[2:])
+        checksum = self._checksum(msg[:-2])
         msg[30] = checksum[0]
         msg[31] = checksum[1]
         return msg

@@ -2,8 +2,8 @@
 Author       : Hanqing Qi, Jiawei Xu
 Date         : 2023-11-04 15:07:52
 LastEditors  : Hanqing Qi
-LastEditTime : 2023-11-05 21:58:56
-FilePath     : /Bicopter-Vision-Control/Blob Detection & Tracking V2/lib/curBlob.py
+LastEditTime : 2023-11-06 17:52:12
+FilePath     : /Bicopter-Vision-Control/Blob Detection & Tracking V2/lib/curblob.py
 Description  : The current blob object that memorizes previous states
 """
 
@@ -29,7 +29,7 @@ class CurBLOB:
         @param       {*} self:
         @param       {*} initial_blob: The first blob appeared after the reset
         @param       {int} norm_level: The norm level for the feature distance (default to L2)
-        @param       {int} feature_dist_threshold: The threshold for the feature distance (default to 100)
+        @param       {int} feature_dist_threshold: The threshold for the feature distance (default to 200)
         @param       {*} window_size: The window size for the moving average (default to 3)
         @param       {*} blob_id: The id of the blob
         @return      {*} None

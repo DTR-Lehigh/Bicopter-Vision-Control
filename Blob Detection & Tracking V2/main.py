@@ -2,7 +2,7 @@
 Author       : Jiawei Xu, Hanqing Qi, Karen Li
 Date         : 2023-11-05 20:22:47
 LastEditors  : Hanqing Qi
-LastEditTime : 2023-11-05 22:58:31
+LastEditTime : 2023-11-06 18:07:28
 FilePath     : /Bicopter-Vision-Control/Blob Detection & Tracking V2/main.py
 Description  : The main program for bicoper vision control.
 """
@@ -13,24 +13,22 @@ import sensor
 import time
 
 # Macros
-GREEN = [(28, 40, -24, -4, -2, 28)]
-PURPLE = [(8, 19, 7, 18, -24, -5)]
-GRAY = [(0, 20)]
+## Color thresholds
+GREEN = [(28, 40, -24, -4, -2, 28)]  # Color threshold for green balloons
+PURPLE = [(8, 19, 7, 18, -24, -5)]  # Color threshold for purple balloons
+GRAY = [(0, 20)]  # Color threshold for goals with blinking method
+BALLON = PURPLE  # The current color threshold for ballon detection
+# BALLON = GREEN + PURPLE # For both green and purple balloons
 
-def blob_tracking(thresholds, clock, blob_type=1):
-    """The blob tracker initialization for balloons
-    blob_type=1 for balloons
-    blob_type=2 for goals
-    """
-    if blob_type == 1:
-        blob_tracker = BLOBTracker(thresholds, clock)
-    elif blob_type == 2:
-        blob_tracker = GoalTracker(thresholds, clock)
-    else:
-        raise ValueError("Invalid blob type!")
-    return blob_tracker
+## Tracker Tresholds
+SHOW = True  # Whether to show the blob
+MAX_UNTRACKED_FRAMES_BALLOON = 15  # Maximum number of frames to be untracked before the tracker is reset
+FEATURE_DISTANCE_THRESHOLD_BALLOON = 200  # Maximum distance between two features to be considered the same feature
+MAX_UNTRACKED_FRAMES_GOAL = 5  # Maximum number of frames to be
+FEATURE_DISTANCE_THRESHOLD_GOAL = 200  # Maximum distance between two features to be considered the same feature
 
 
+# Functions
 def init_sensor(isColored: bool = True, framesize=sensor.HQVGA, windowsize=None) -> None:
     """
     @description: Initialize the sensor for detection
@@ -80,28 +78,49 @@ def init_sensor(isColored: bool = True, framesize=sensor.HQVGA, windowsize=None)
     # sensor.skip_frames(time=2000) # Let the camera adjust.
 
 
-def set_mode(current_mode:str, desired_mode:str, mytracker=None) -> tuple:
+def set_mode(current_mode: str, desired_mode: str, mytracker=None) -> tuple:
     """
     @description: Set the mode of the detection
-    @param       {str} current_mode: The current mode of the detection (default to None)
-    @param       {str} desired_mode: The desired mode of the detection (default to "T" target mode)
+    @param       {str} current_mode: The current mode of the detection
+    @param       {str} desired_mode: The desired mode of the detection
     @param       {*} mytracker: The tracker object (default to None)
     @return      {tuple} The current mode and the tracker
     """
+
     def change_mode(mode):
-            init_sensor(isColored=(mode == "T"))
-            thresholds = PURPLE if mode == "T" else GRAY
-            return blob_tracking(thresholds, myclock, blob_type=1 if mode == "T" else 2)
+        init_sensor(isColored=(mode == "B"))
+        thresholds = BALLON if mode == "B" else GRAY
+
+        # Initialize the tracker
+        if mode == "B":
+            blob_tracker = BLOBTracker(
+                thresholds,
+                myclock,
+                show=SHOW,
+                max_untracked_frames=MAX_UNTRACKED_FRAMES_BALLOON,
+                feature_distance_threshold=FEATURE_DISTANCE_THRESHOLD_BALLOON,
+            )
+        elif mode == "G":
+            blob_tracker = GoalTracker(
+                thresholds,
+                myclock,
+                show=SHOW,
+                max_untracked_frames=MAX_UNTRACKED_FRAMES_GOAL,
+                feature_distance_threshold=FEATURE_DISTANCE_THRESHOLD_GOAL,
+            )
+        else:
+            raise ValueError("Invalid blob type!")
+        return blob_tracker
 
     # Check if the mode is valid
-    if desired_mode not in ["T", "G"]:
-        print("Invalid mode! Defaulting to target mode 'T'.")
-        desired_mode = "T"
+    if desired_mode not in ["B", "G"]:
+        print("Invalid mode! Defaulting to ballon mode 'B'.")
+        desired_mode = "B"
 
     # If no tracker or a mode change is required, update the tracker
     if not mytracker or current_mode != desired_mode:
         mytracker = change_mode(desired_mode)
-        print(f"Switched to {'target' if desired_mode == 'T' else 'goal'} tracking mode.")
+        print(f"Switched to {'ballon' if desired_mode == 'B' else 'goal'} tracking mode.")
     else:
         print("Already in the desired mode, no change required.")
 
@@ -110,10 +129,10 @@ def set_mode(current_mode:str, desired_mode:str, mytracker=None) -> tuple:
 
 
 if __name__ == "__main__":
-    myclock = time.clock() # Create a clock object to track the FPS
-    detection_mode = "T" # Default to target mode
-    myibus = IBus() # Initialize inter-board communication
-    detection_mode, mytracker = set_mode(None, detection_mode) # Initialize the tracker
+    myclock = time.clock()  # Create a clock object to track the FPS
+    detection_mode = "B"  # Default to ballon mode
+    myibus = IBus()  # Initialize inter-board communication
+    detection_mode, mytracker = set_mode(None, detection_mode)  # Initialize the tracker
 
     while True:
         mytracker.track()
@@ -129,7 +148,7 @@ if __name__ == "__main__":
             y_blob = round(blob[1] + blob[3] / 2)
             w_blob = round(blob[2])
             h_blob = round(blob[3])
-            flag = 0 if detection_mode == "T" else 1
+            flag = 0 if detection_mode == "B" else 1
             myibus.send([flag, x_roi, y_roi, w_roi, h_roi, x_blob, y_blob, w_blob, h_blob])
         else:
             myibus.send([-1, 0, 0, 0, 0, 0, 0, 0, 0])
