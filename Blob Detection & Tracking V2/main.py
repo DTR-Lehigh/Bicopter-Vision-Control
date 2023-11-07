@@ -2,7 +2,7 @@
 Author       : Jiawei Xu, Hanqing Qi, Karen Li
 Date         : 2023-11-05 20:22:47
 LastEditors  : Hanqing Qi
-LastEditTime : 2023-11-06 18:07:28
+LastEditTime : 2023-11-07 16:40:21
 FilePath     : /Bicopter-Vision-Control/Blob Detection & Tracking V2/main.py
 Description  : The main program for bicoper vision control.
 """
@@ -26,6 +26,8 @@ MAX_UNTRACKED_FRAMES_BALLOON = 15  # Maximum number of frames to be untracked be
 FEATURE_DISTANCE_THRESHOLD_BALLOON = 200  # Maximum distance between two features to be considered the same feature
 MAX_UNTRACKED_FRAMES_GOAL = 5  # Maximum number of frames to be
 FEATURE_DISTANCE_THRESHOLD_GOAL = 200  # Maximum distance between two features to be considered the same feature
+FACTORS_BALLON = [0.1, 0.1, 0.1, 0.1]
+FACTORS_GOAL = [0.1, 0.1, 0.1, 0.1]
 
 
 # Functions
@@ -99,6 +101,7 @@ def set_mode(current_mode: str, desired_mode: str, mytracker=None) -> tuple:
                 show=SHOW,
                 max_untracked_frames=MAX_UNTRACKED_FRAMES_BALLOON,
                 feature_distance_threshold=FEATURE_DISTANCE_THRESHOLD_BALLOON,
+                factors=FACTORS_BALLON,
             )
         elif mode == "G":
             blob_tracker = GoalTracker(
@@ -107,6 +110,7 @@ def set_mode(current_mode: str, desired_mode: str, mytracker=None) -> tuple:
                 show=SHOW,
                 max_untracked_frames=MAX_UNTRACKED_FRAMES_GOAL,
                 feature_distance_threshold=FEATURE_DISTANCE_THRESHOLD_GOAL,
+                factors=FACTORS_GOAL,
             )
         else:
             raise ValueError("Invalid blob type!")

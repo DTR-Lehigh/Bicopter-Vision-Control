@@ -2,7 +2,7 @@
 Author       : Hanqing Qi, Jiawei Xu
 Date         : 2023-11-04 19:02:37
 LastEditors  : Hanqing Qi
-LastEditTime : 2023-11-06 18:08:30
+LastEditTime : 2023-11-07 16:41:54
 FilePath     : /Bicopter-Vision-Control/Blob Detection & Tracking V2/lib/tracker.py
 Description  : The tracker class for blob tracking, contains the BLOBTracker and GoalTracker
 """
@@ -42,7 +42,6 @@ class Tracker:
         self.current_thresholds = [threshold for threshold in thresholds]  # Deep copy the thresholds
         self.clock = clock  # The clock to track the time
         self.show = show  # Whether to show the image
-        self.roi = MemROI(ffp=0.1, ffs=0.1, gfp=0.2, gfs=0.2)  # The ROI of the blob
         self.max_untracked_frames = max_untracked_frames  # The maximum number of untracked frames
         self.dynamic_threshold = dynamic_threshold  # Whether to use dynamic threshold
         self.threshold_update_rate = threshold_update_rate  # The rate of threshold update
@@ -194,6 +193,7 @@ class BLOBTracker(Tracker):
         clock: time.clock,
         show: bool = True,
         max_untracked_frames: int = 15,
+        factors: list = [0.01, 0.025, 0.1, 0.1],
         dynamic_threshold: bool = False,
         threshold_update_rate: float = 0,
         feature_distance_threshold: float = 200,
@@ -218,6 +218,7 @@ class BLOBTracker(Tracker):
             dynamic_threshold,
             threshold_update_rate,
         )  # Initialize the parent class
+        self.roi = MemROI(ffp=factors[0], ffs=factors[1], gfp=factors[2], gfs=factors[3]) # The ROI of the ballon
         init_blob, statistics = self.find_reference()  # Find the blob with the largest area
         self.tracked_blob = CurBLOB(init_blob, feature_dist_threshold=feature_distance_threshold)  # The tracked blob
 
@@ -329,6 +330,7 @@ class GoalTracker(Tracker):
         clock: time.clock,
         show: bool = True,
         max_untracked_frames: int = 5,
+        factors: list = [0.01, 0.025, 0.1, 0.1],
         dynamic_threshold: bool = False,
         threshold_update_rate: float = 0,
         feature_distance_threshold: float = 200,
@@ -357,6 +359,7 @@ class GoalTracker(Tracker):
             dynamic_threshold,
             threshold_update_rate,
         )
+        self.roi = MemROI(ffp=factors[0], ffs=factors[1], gfp=factors[2], gfs=factors[3]) # The ROI of the goal
         blob, statistics = self.find_reference()  # Find the blob with the largest area
         self.tracked_blob = CurBLOB(blob, feature_dist_threshold=feature_distance_threshold) # The tracked blob
         self.IR_LED = Pin(LEDpin, Pin.OUT)
@@ -471,6 +474,8 @@ class GoalTracker(Tracker):
             area_threshold=40,
             pixels_threshold=20,
             margin=10,
+            x_stride=1,
+            y_stride=1,
             merge=True,
             mask=edge_mask,
         )

@@ -2,7 +2,7 @@
 Author       : Hanqing Qi, Karen Li
 Date         : 2023-11-03 19:16:19
 LastEditors  : Hanqing Qi
-LastEditTime : 2023-11-07 16:08:40
+LastEditTime : 2023-11-07 16:40:34
 FilePath     : /Bicopter-Vision-Control/Blob Detection & Tracking V2/lib/Ibus.py
 Description  : The iBus library for the Bicopter Vision Control project.
 """
@@ -12,8 +12,8 @@ from pyb import UART
 # Macros
 IBUS_MSG_LEN = 32  # The length of the iBus message
 IBUS_MSG_HEADER = [0x20, 0x40]  # The header of the iBus message
-NICLA_TGT = 0x11  # Flag to set Nicla in target mode
-NICLA_GAL = 0x22  # Flag to set Nicla in goal mode
+NICLA_TGT = 0x81  # Flag to set Nicla in target mode
+NICLA_GAL = 0x82  # Flag to set Nicla in goal mode
 
 
 class IBus:
@@ -98,7 +98,7 @@ class IBus:
         @return      {str} The flag to set Nicla in target mode or goal mode
         """
         if self.uart.any():
-            msg = self.uart.read(32)
+            msg = self.uart.read()
             if msg == NICLA_TGT:
                 return "T"
             elif msg == NICLA_GAL:
